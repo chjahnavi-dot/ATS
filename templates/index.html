@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Career Match | ATS Optimizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .loader { border-top-color: #3b82f6; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen font-sans text-slate-900">
+
+    <header class="bg-white border-b sticky top-0 z-10">
+        <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                <i class="fas fa-robot mr-2"></i>Gemini ATS Matcher
+            </h1>
+            <span class="text-xs font-semibold px-3 py-1 bg-blue-100 text-blue-700 rounded-full">v2.5 Flash Powered</span>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-6 py-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <section class="space-y-6">
+                <div class="glass p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fas fa-file-upload mr-2 text-blue-500"></i>Upload Details
+                    </h2>
+                    
+                    <form id="analyzeForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Resume (PDF)</label>
+                            <div class="border-2 border-dashed border-slate-300 rounded-xl p-4 text-center hover:border-blue-400 transition-colors">
+                                <input type="file" name="resume" accept=".pdf" required class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Job Description</label>
+                            <textarea name="job_description" rows="8" required 
+                                class="w-full p-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                                placeholder="Paste the job requirements here..."></textarea>
+                        </div>
+
+                        <button type="submit" id="submitBtn" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-200 flex justify-center items-center">
+                            <span>Analyze Match</span>
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="relative">
+                <div id="loading" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-20 rounded-2xl">
+                    <div class="loader w-12 h-12 border-4 border-slate-200 rounded-full mb-4"></div>
+                    <p class="text-slate-600 font-medium">AI is analyzing your fit...</p>
+                </div>
+
+                <div id="emptyState" class="h-full flex flex-col items-center justify-center text-slate-400 border-2 border-dashed rounded-2xl p-10">
+                    <i class="fas fa-chart-pie text-5xl mb-4"></i>
+                    <p>Results will appear here after analysis</p>
+                </div>
+
+                <div id="results" class="hidden space-y-6">
+                    <div class="glass p-6 rounded-2xl shadow-md border-l-4 border-blue-600">
+                        <h3 class="text-sm uppercase tracking-wider font-bold text-slate-500 mb-2">ATS Analysis Report</h3>
+                        <div id="atsContent" class="prose prose-slate max-w-none whitespace-pre-wrap text-slate-700 text-sm leading-relaxed"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        <details class="group glass rounded-xl border border-slate-200">
+                            <summary class="list-none p-4 cursor-pointer flex justify-between items-center font-medium">
+                                Parsed Resume <i class="fas fa-chevron-down transition-transform group-open:rotate-180"></i>
+                            </summary>
+                            <div id="resumeContent" class="p-4 pt-0 text-sm text-slate-600 whitespace-pre-wrap border-t border-slate-100"></div>
+                        </details>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('analyzeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const emptyState = document.getElementById('emptyState');
+
+            // Toggle States
+            loading.classList.remove('hidden');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50');
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                    emptyState.classList.add('hidden');
+                    results.classList.remove('hidden');
+                    document.getElementById('atsContent').innerText = data.ats_result;
+                    document.getElementById('resumeContent').innerText = data.parsed_resume;
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (err) {
+                alert('An error occurred. Please check your connection.');
+            } finally {
+                loading.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50');
+            }
+        });
+    </script>
+</body>
+</html>
